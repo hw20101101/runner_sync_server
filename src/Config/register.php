@@ -39,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             reg_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             )";
     if (mysqli_query($conn, $sql)) {
+        // 如果 users 表已经存在，它只会输出 “users 表创建成功！” 而不会尝试重新创建表
         echo "users 表创建成功！";
     } else {
         echo "users 表创建失败：" . mysqli_error($conn);
@@ -68,7 +69,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
     // 关闭数据库连接 
     mysqli_close($conn); 
-  
     exit();
 }
 
