@@ -67,7 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_stmt->bind_param("si", $last_login_time, $user_id);
 
         if ($update_stmt->execute()) {
-            echo json_encode(['success' => true, 'message' => '💐 恭喜，登录成功！💐']);
+            //返回 user_id 和 token 给 APP
+            $token = md5($user_id. $last_login_time. $salt); 
+            echo json_encode(['success' => true, 'user_id' => $user_id, 'token' => $token, 'message' => '💐 恭喜，登录成功！💐']);
         } else {
             echo json_encode(['success' => false, 'message' => '登录失败: ' . $update_stmt->error]);
         }
