@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   
     // 查询所有的历史运动数据
-    $sql = "SELECT * FROM running_records WHERE user_id =? ";
+    $sql = "SELECT * FROM running_records WHERE user_id = ? ORDER BY created_at DESC";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $data['user_id']);
     $stmt->execute();
@@ -43,7 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $history_data[] = $row;
     }
 
-    echo json_encode(['success' => true, 'message' => '💐 查询历史运动数据成功！💐', 'data' => $history_data]);
+    echo json_encode([
+        'success' => true, 
+        'message' => '💐 查询历史运动数据成功！💐', 
+        'data' => $history_data,
+        'count' => count($history_data)
+    ]);
  
     $stmt->close();
     // 关闭数据库连接 
