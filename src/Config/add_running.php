@@ -45,26 +45,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
 
+    $data = json_decode(file_get_contents("php://input"), true);
+
     // 检查用户是否已登录
-    // if (!isset($_SESSION['user_id'])) {
-    //     echo json_encode(['success' => false, 'message' => '用户未登录']);
-    //     mysqli_close($conn);
-    //     exit();
-    // }
+    if (!isset($data['user_id'])) {
+        echo json_encode(['success' => false, 'message' => '用户未登录']);
+        mysqli_close($conn);
+        exit();
+    }
 
     // 设置时区
     date_default_timezone_set('Asia/Shanghai');
     $now_time = date('Y-m-d H:i:s');
 
-    // 硬编码测试数据
-    $user_id = 8;   //$_SESSION['user_id'];
-    $distance = 3.5;                    // 距离(千米)
-    $duration = 1800;                   // 时长(秒) - 30分钟
-    $calories = 250.50;                 // 消耗卡路里
-    $avg_speed = 7.0;                   // 平均速度(km/h)
-    $start_time = $now_time;            // 开始时间
-    $end_time = $now_time;              // 结束时间
-    $route_data = '{"coordinates": [{"lat": 31.2304, "lng": 121.4737}, {"lat": 31.2305, "lng": 121.4738}]}'; // GPS路线数据
+    // 获取传递的数据
+    $user_id = $data['user_id'];         // 用户ID
+    $distance = $data['distance'];       // 距离(千米)
+    $duration = $data['duration'];       // 时长(秒) - 30分钟
+    $calories = $data['calories'];         // 消耗卡路里
+    $avg_speed = $data['avg_speed'];       // 平均速度(km/h)
+    $start_time =  $data['start_time'];   // 开始时间
+    $end_time =  $data['end_time'];         // 结束时间
+    // GPS路线数据-暂时用默认数据
+    $route_data = '{"coordinates": [{"lat": 31.2304, "lng": 121.4737}, {"lat": 31.2305, "lng": 121.4738}]}'; 
 
     // 插入数据到 running_records 表
     $insert_sql = "INSERT INTO running_records (user_id, distance, duration, calories, avg_speed, start_time, end_time, route_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
