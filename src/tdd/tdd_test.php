@@ -72,4 +72,65 @@ class ExerciseHistoryApiTest {
     }
 }
 
+//2. 运动记录实体类（Entity）
+class ExerciseRecord { 
+    private $id;
+    private $userId;
+    private $type;
+    private $duration; //分钟
+    private $distance; //公里
+    private $calories;
+    private $createdAt;
+
+    public function __construct($id, $userId, $type, $duration, $distance, $calories, $createdAt) {
+        $this->id = $id;
+        $this->userId = $userId;
+        $this->type = $type;
+        $this->duration = $duration;
+        $this->distance = $distance;
+        $this->calories = $calories;
+        $this->createAt = $createdAt;
+    }
+
+    public function getId() : int {
+        return $this->id;
+    }
+
+    public function getUserId() : int {
+        return $this->userId;
+    }
+
+    public function getType() : string {
+        return $this->type;
+    }
+
+    public function getDuration() : int {
+        return $this->duration;
+    }
+
+    public function getDistance() : float {
+        return $this->distance;
+    }
+
+    public function getCalories() : int {
+        return $this->calories;
+    }
+
+    public function getCreateAt() : string {
+        return $this->createAt;
+    }
+
+    public function toArray() : array {
+        return [
+            'id' => $this->id,
+            'user_id' => $this->userId,
+            'type' => $this->type,
+            'duration' => $this->duration,
+            'distance' => $this->distance,
+            'calories' => $this->calories,
+            'date' => $this->createAt
+        ];
+    }
+}
+
 ?>
