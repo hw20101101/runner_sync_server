@@ -133,4 +133,70 @@ class ExerciseRecord {
     }
 }
 
+// 3. 仓储接口 (Repository Interface)
+interface ExerciseRepositoryInterface {
+
+    public function findByUserId(int $userId, array $filters = []): array;
+    public function countByUserId(int $userId, array $filters =[]): int;
+}
+
+// 4. 仓储实现 (Repository Implementation) 
+class ExerciseRepository implements ExerciseRepositoryInterface {
+
+    private $database;
+
+    public function __constuuct($database){
+        $this->database = $database;
+    }
+
+    public function findByUserId(int $userId, array $filters = []): array {
+
+        $sql = "SELECT * FROM exercise_records WHERE user_id = :user_id";
+        $params = ['user_id' => $userId];
+
+        //添加过滤条件
+        if(!empty($filters['start_date'])) {
+            $sql .= " AND create_at >= :start_date";
+            $params['start_date'] = $filters['start_date'];
+        }
+
+        if(!empty($filters['end_date'])) {
+            $sql .= " AND create_at >= :end_date";
+            $params['end_date'] = $filters['end_date'];
+        }
+
+        if(!empty($filters['exercise_type'])) {
+            $sql .= " AND type >= :exercise_type";
+            $params['exercise_type'] = $filters['exercise_type'];
+        }
+
+        $sql .= " ORDER BY create_at DESC";
+
+        if(!empty($filters['offset'])) {
+            $sql .= " OFFSET :offset";
+            $params['offset'] = $filters['offset'];
+        }
+
+        $stmt = $this->database->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetchAll();
+
+        $exercises = [];
+        foreach($results as $row) {
+            $exercises[] = new ExerciseRecord(
+                $row['id'],
+                $row['user_id'],
+                $row['type'],
+                $row['duration'],
+                $row['distance'],
+                $row['calories'],
+                $row['create_at']
+            );
+        }
+
+        return $exercises;
+    }
+}
+
+
 ?>
