@@ -204,6 +204,98 @@ class ExerciseRepository implements ExerciseRepositoryInterface {
 
         return $exercises;
     }
+
+    public function countByUserId(int $userId, array $filters = []): int {
+        $sql = "SELECT COUNT(*) FROM exercise_records WHERE user_id = :user_id";
+        $params = ['user_id' => $userId];
+
+        //添加过滤条件
+        if (!empty($filters['start_date'])) {
+            $sql .= " AND create_at >= :start_date";
+            $params['start_date'] = $filters['start_date'];
+        }
+
+        if (!emapty($filters['end_date'])) {
+            $sql .= " AND create_at <= :end_date";
+            $params['end_date'] = $filters['end_date'];            
+        }
+
+        if (!empty($filters['exercise_type'])) {
+            $sql .= " AND type = :exercise_type";
+            $params['exercise_type'] = $filters['exercise_type'];
+        }
+
+        $stmt = $this->database->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchColumn();
+    }
 }
 
+// 5. mock 仓储类 用于测试
+// 快速测试：不需要真实数据库
+class MockExerciseRepository implements ExerciseRepositoryInterface {
+    private $mockData = [];
+
+    public function setMockData(array $data) {
+        $this->mockData = $data;
+    }
+
+    public function findByUserId(int $userId, array $filters =[]): array {
+        $exercises = [];
+        foreach($this->mockData as $data) {
+            $exercises[] = new ExerciseRecord(
+                $data['id'],
+                $userId,
+                $data['type'],
+                $data['duration'],
+                $data['distance'],
+                $data['calories'],
+                $data['date']
+            );
+        }
+        return $exercises;
+    }
+
+    public function countByUserId(int $userId, array $filters = []): int {
+        return count($this->mockData);
+    }
+}
+
+// 6. 验证器类
+// 复用性：验证逻辑可以在多处使用
+class ExerciseHistoryValidator {
+    public function validateUserId($userId): array {
+        $errors = [];
+
+        if (!is_numeric($userId) || $userId <= 0) {
+            $errors[] = 'Invalid user id';
+        }
+
+        return $errors;
+    }
+
+    public function validateFilters(array $filters): array {
+        $errors = [];
+
+        if(!empty($filters['start_date'] && !$this->isValidDate($filters['start_date']))) {
+            $errors[] = 'Invalid start date format';
+        }
+    
+        if(!empty($filters['end_date'] && !$this->isValidDate($filters['end_date']))) {
+            $errors[] = 'Invalid end date format';
+        }
+
+        if(!empty($filters['limit'] && (!is_numeric($filters['limit'])) || $filters['limit'] <= 0)) {
+            $errors[] = 'Invalid limit value';
+        }
+
+        return $errors;
+    }
+
+    private function isValidDate($date): bool {
+        $d = DateTime::createFromFormat('Y-m-d', $date);
+        return $d && $d->format('Y-m-d') === $date;
+    }
+}
 ?>
