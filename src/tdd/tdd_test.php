@@ -11,7 +11,8 @@ class ExerciseHistoryApiTest {
         $this->api = new ExerciseHistoryApi($this->repository);
     }
 
-    public function testGetUserExerciseHistory() {
+    //驱动设计：测试定义了API应该如何工作，而不是代码写完后再想测试
+    public function testGetUserExerciseHistoryReturnsCorrectFormat() {
         $userId = 123;
         $expectedData = [
             'user_id' => 123,
@@ -72,7 +73,8 @@ class ExerciseHistoryApiTest {
     }
 }
 
-//2. 运动记录实体类（Entity）
+//2. 运动记录实体类（Entity） 
+// 数据模型
 class ExerciseRecord { 
     private $id;
     private $userId;
@@ -141,6 +143,7 @@ interface ExerciseRepositoryInterface {
 }
 
 // 4. 仓储实现 (Repository Implementation) 
+// 具体实现 - 单一职责：每个类只做一件事
 class ExerciseRepository implements ExerciseRepositoryInterface {
 
     private $database;
@@ -161,16 +164,21 @@ class ExerciseRepository implements ExerciseRepositoryInterface {
         }
 
         if(!empty($filters['end_date'])) {
-            $sql .= " AND create_at >= :end_date";
+            $sql .= " AND create_at <= :end_date";
             $params['end_date'] = $filters['end_date'];
         }
 
         if(!empty($filters['exercise_type'])) {
-            $sql .= " AND type >= :exercise_type";
+            $sql .= " AND type = :exercise_type";
             $params['exercise_type'] = $filters['exercise_type'];
         }
 
         $sql .= " ORDER BY create_at DESC";
+
+        if(!empty($filters['limit'])) {
+            $sql .= " LIMIT :limit";
+            $params['limit'] = $filters['limit'];
+        }
 
         if(!empty($filters['offset'])) {
             $sql .= " OFFSET :offset";
@@ -197,6 +205,5 @@ class ExerciseRepository implements ExerciseRepositoryInterface {
         return $exercises;
     }
 }
-
 
 ?>
