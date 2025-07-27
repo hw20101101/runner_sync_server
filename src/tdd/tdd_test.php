@@ -363,4 +363,43 @@ class ExerciseHistoryApi {
     }
 }
 
+// 8. HTTP 控制器类 (controller)
+class ExerciseHistoryController {
+    private $api;
+
+    public function __construct(ExerciseHistoryApi $api) {
+        $this->api = $api;
+    }
+
+    public function getHistory() {
+        header('Content-Type: application/json');
+
+        // 获取请求参数
+        $userId = $_GET['user_id'] ?? null;
+        $filter = [
+            'start_date' => $_GET['start_date'] ?? null,
+            'end_date' => $_GET['end_date'] ?? null,
+            'exercise_type' => $_GET['exercise_type'] ?? null,
+            'limit' => $_GET['limit'] ?? 50,
+            'offset' => $_GET['offset'] ?? 0
+        ];
+
+        // 过滤空值
+        $filter = array_fiter($filters, function($value) {
+            return $value !== null && $value !== '';
+        });
+
+        if (!$userId){
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'user id is required'
+            ]);
+            return;
+        }
+
+        $result = $this->api->getUserExerciseHistory((int)$userId, $filter);
+        echo json_encode($result);
+    }
+}
+
 ?>
