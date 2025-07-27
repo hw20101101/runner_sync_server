@@ -1,128 +1,46 @@
 <?php
+// exercise_history_test.php
+// 在VSCode中可直接运行的完整代码 25-7-28
 
-//1. 首先编写测试用例
-class ExerciseHistoryApiTest {
-
-    private $api;
-    private $repository;
-
-    public function setUp() {
-        $this->repository = new MockExerciseRepository();
-        $this->api = new ExerciseHistoryApi($this->repository);
-    }
-
-    //驱动设计：测试定义了API应该如何工作，而不是代码写完后再想测试
-    public function testGetUserExerciseHistoryReturnsCorrectFormat() {
-        $userId = 123;
-        $expectedData = [
-            'user_id' => 123,
-            'exercises' => [
-                [
-                    'id' => 1,
-                    'type' => 'running',
-                    'duration' => 30,
-                    'distance' => 10,
-                    'calories' => 100,
-                    'date' => '2021-01-01'
-                ]
-            ],
-            'total_count' => 1
-        ];
-
-        $this->repository->setMockData($expectedData['exercises']);
-
-        // act
-        $result = $this->api->getUserExerciseHistory($userId);
-
-        // assert
-        assert($result['status'] === 'success');
-        assert($result['data']['user_id']) === $userId;
-        assert(count($result['data']['exercises']) === 1);
-        assert($result['data']['exercises'][0]['type'] === 'running');
-    }
-
-    public function testGetUserExerciseHistoryWithFilters() {
-        
-        // arrange
-        $userId = 123;
-        $filters = [
-            'start_date' => '2021-01-01',
-            'end_date' => '2021-01-31',
-            'exercise_type' => 'running'
-        ];
-
-        // act
-        $result = $this->api->getUserExerciseHistory($userId, $filters);
-
-        // assert
-        assert($result['status'] === 'success');
-        assert(is_array($result['data']['exercises']));
-    }
-
-    public function testGetUserExerciseHistoryWithInvalidUserId() { 
-
-        // arrange
-        $invalidUserId = -1;
-
-        // act
-        $result = $this->api->getUserExerciseHistory($invalidUserId);
-
-        // assert
-        assert($result['status'] === 'error');
-        assert($result['message'] === 'Invalid user id');
+// 简单的断言函数
+function test_assert($condition, $message) {
+    if (!$condition) {
+        throw new Exception("Assertion failed: " . $message);
     }
 }
 
-//2. 运动记录实体类（Entity） 
-// 数据模型
-class ExerciseRecord { 
+// 运动记录实体类
+class ExerciseRecord
+{
     private $id;
     private $userId;
     private $type;
-    private $duration; //分钟
-    private $distance; //公里
+    private $duration;
+    private $distance;
     private $calories;
     private $createdAt;
 
-    public function __construct($id, $userId, $type, $duration, $distance, $calories, $createdAt) {
+    public function __construct($id, $userId, $type, $duration, $distance, $calories, $createdAt)
+    {
         $this->id = $id;
         $this->userId = $userId;
         $this->type = $type;
         $this->duration = $duration;
         $this->distance = $distance;
         $this->calories = $calories;
-        $this->createAt = $createdAt;
+        $this->createdAt = $createdAt;
     }
 
-    public function getId() : int {
-        return $this->id;
-    }
+    public function getId(): int { return $this->id; }
+    public function getUserId(): int { return $this->userId; }
+    public function getType(): string { return $this->type; }
+    public function getDuration(): int { return $this->duration; }
+    public function getDistance(): float { return $this->distance; }
+    public function getCalories(): int { return $this->calories; }
+    public function getCreatedAt(): string { return $this->createdAt; }
 
-    public function getUserId() : int {
-        return $this->userId;
-    }
-
-    public function getType() : string {
-        return $this->type;
-    }
-
-    public function getDuration() : int {
-        return $this->duration;
-    }
-
-    public function getDistance() : float {
-        return $this->distance;
-    }
-
-    public function getCalories() : int {
-        return $this->calories;
-    }
-
-    public function getCreateAt() : string {
-        return $this->createAt;
-    }
-
-    public function toArray() : array {
+    public function toArray(): array
+    {
         return [
             'id' => $this->id,
             'user_id' => $this->userId,
@@ -130,120 +48,32 @@ class ExerciseRecord {
             'duration' => $this->duration,
             'distance' => $this->distance,
             'calories' => $this->calories,
-            'date' => $this->createAt
+            'date' => $this->createdAt
         ];
     }
 }
 
-// 3. 仓储接口 (Repository Interface)
-interface ExerciseRepositoryInterface {
-
+// 仓储接口
+interface ExerciseRepositoryInterface
+{
     public function findByUserId(int $userId, array $filters = []): array;
-    public function countByUserId(int $userId, array $filters =[]): int;
+    public function countByUserId(int $userId, array $filters = []): int;
 }
 
-// 4. 仓储实现 (Repository Implementation) 
-// 具体实现 - 单一职责：每个类只做一件事
-class ExerciseRepository implements ExerciseRepositoryInterface {
-
-    private $database;
-
-    public function __constuuct($database){
-        $this->database = $database;
-    }
-
-    public function findByUserId(int $userId, array $filters = []): array {
-
-        $sql = "SELECT * FROM exercise_records WHERE user_id = :user_id";
-        $params = ['user_id' => $userId];
-
-        //添加过滤条件
-        if(!empty($filters['start_date'])) {
-            $sql .= " AND create_at >= :start_date";
-            $params['start_date'] = $filters['start_date'];
-        }
-
-        if(!empty($filters['end_date'])) {
-            $sql .= " AND create_at <= :end_date";
-            $params['end_date'] = $filters['end_date'];
-        }
-
-        if(!empty($filters['exercise_type'])) {
-            $sql .= " AND type = :exercise_type";
-            $params['exercise_type'] = $filters['exercise_type'];
-        }
-
-        $sql .= " ORDER BY create_at DESC";
-
-        if(!empty($filters['limit'])) {
-            $sql .= " LIMIT :limit";
-            $params['limit'] = $filters['limit'];
-        }
-
-        if(!empty($filters['offset'])) {
-            $sql .= " OFFSET :offset";
-            $params['offset'] = $filters['offset'];
-        }
-
-        $stmt = $this->database->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll();
-
-        $exercises = [];
-        foreach($results as $row) {
-            $exercises[] = new ExerciseRecord(
-                $row['id'],
-                $row['user_id'],
-                $row['type'],
-                $row['duration'],
-                $row['distance'],
-                $row['calories'],
-                $row['create_at']
-            );
-        }
-
-        return $exercises;
-    }
-
-    public function countByUserId(int $userId, array $filters = []): int {
-        $sql = "SELECT COUNT(*) FROM exercise_records WHERE user_id = :user_id";
-        $params = ['user_id' => $userId];
-
-        //添加过滤条件
-        if (!empty($filters['start_date'])) {
-            $sql .= " AND create_at >= :start_date";
-            $params['start_date'] = $filters['start_date'];
-        }
-
-        if (!emapty($filters['end_date'])) {
-            $sql .= " AND create_at <= :end_date";
-            $params['end_date'] = $filters['end_date'];            
-        }
-
-        if (!empty($filters['exercise_type'])) {
-            $sql .= " AND type = :exercise_type";
-            $params['exercise_type'] = $filters['exercise_type'];
-        }
-
-        $stmt = $this->database->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchColumn();
-    }
-}
-
-// 5. mock 仓储类 用于测试
-// 快速测试：不需要真实数据库
-class MockExerciseRepository implements ExerciseRepositoryInterface {
+// Mock仓储实现（用于测试）
+class MockExerciseRepository implements ExerciseRepositoryInterface
+{
     private $mockData = [];
 
-    public function setMockData(array $data) {
+    public function setMockData(array $data)
+    {
         $this->mockData = $data;
     }
 
-    public function findByUserId(int $userId, array $filters =[]): array {
+    public function findByUserId(int $userId, array $filters = []): array
+    {
         $exercises = [];
-        foreach($this->mockData as $data) {
+        foreach ($this->mockData as $data) {
             $exercises[] = new ExerciseRecord(
                 $data['id'],
                 $userId,
@@ -257,62 +87,62 @@ class MockExerciseRepository implements ExerciseRepositoryInterface {
         return $exercises;
     }
 
-    public function countByUserId(int $userId, array $filters = []): int {
+    public function countByUserId(int $userId, array $filters = []): int
+    {
         return count($this->mockData);
     }
 }
 
-// 6. 验证器类
-// 复用性：验证逻辑可以在多处使用
-class ExerciseHistoryValidator {
-    public function validateUserId($userId): array {
+// 验证器类
+class ExerciseHistoryValidator
+{
+    public function validateUserId($userId): array
+    {
         $errors = [];
-
         if (!is_numeric($userId) || $userId <= 0) {
-            $errors[] = 'Invalid user id';
+            $errors[] = 'Invalid user ID';
         }
-
         return $errors;
     }
 
-    public function validateFilters(array $filters): array {
+    public function validateFilters(array $filters): array
+    {
         $errors = [];
-
-        if(!empty($filters['start_date'] && !$this->isValidDate($filters['start_date']))) {
+        
+        if (!empty($filters['start_date']) && !$this->isValidDate($filters['start_date'])) {
             $errors[] = 'Invalid start date format';
         }
-    
-        if(!empty($filters['end_date'] && !$this->isValidDate($filters['end_date']))) {
+        
+        if (!empty($filters['end_date']) && !$this->isValidDate($filters['end_date'])) {
             $errors[] = 'Invalid end date format';
         }
-
-        if(!empty($filters['limit'] && (!is_numeric($filters['limit'])) || $filters['limit'] <= 0)) {
-            $errors[] = 'Invalid limit value';
-        }
-
+        
         return $errors;
     }
 
-    private function isValidDate($date): bool {
+    private function isValidDate($date): bool
+    {
         $d = DateTime::createFromFormat('Y-m-d', $date);
         return $d && $d->format('Y-m-d') === $date;
     }
 }
 
-// 7. 主要 API 类
-class ExerciseHistoryApi {
+// API服务类
+class ExerciseHistoryApi
+{
     private $repository;
     private $validator;
 
-    public function __construct(ExerciseRepositoryInterface $repository) {
+    public function __construct(ExerciseRepositoryInterface $repository)
+    {
         $this->repository = $repository;
         $this->validator = new ExerciseHistoryValidator();
     }
 
-    public function getUserExerciseHistory(int $userId, array $filters =[]) : array {
+    public function getUserExerciseHistory(int $userId, array $filters = []): array
+    {
         try {
-
-            // 验证用户 ID
+            // 验证用户ID
             $userIdErrors = $this->validator->validateUserId($userId);
             if (!empty($userIdErrors)) {
                 return $this->errorResponse($userIdErrors[0]);
@@ -320,9 +150,9 @@ class ExerciseHistoryApi {
 
             // 验证过滤条件
             $filterErrors = $this->validator->validateFilters($filters);
-            if (!empty($filterErrors)){
+            if (!empty($filterErrors)) {
                 return $this->errorResponse(implode(', ', $filterErrors));
-            } 
+            }
 
             // 获取运动记录
             $exercises = $this->repository->findByUserId($userId, $filters);
@@ -330,7 +160,7 @@ class ExerciseHistoryApi {
 
             // 转换为数组格式
             $exerciseData = [];
-            foreach($exercises as $exercise) {
+            foreach ($exercises as $exercise) {
                 $exerciseData[] = $exercise->toArray();
             }
 
@@ -341,12 +171,13 @@ class ExerciseHistoryApi {
                 'filters_applied' => $filters
             ]);
 
-        } catch(Exception $e) {
-            return $this->errorResponse('Internal server error');
+        } catch (Exception $e) {
+            return $this->errorResponse('Internal server error: ' . $e->getMessage());
         }
     }
 
-    private function successResponse(array $data): array {
+    private function successResponse(array $data): array
+    {
         return [
             'status' => 'success',
             'data' => $data,
@@ -354,7 +185,8 @@ class ExerciseHistoryApi {
         ];
     }
 
-    private function errorResponse(string $message): array {
+    private function errorResponse(string $message): array
+    {
         return [
             'status' => 'error',
             'message' => $message,
@@ -363,42 +195,144 @@ class ExerciseHistoryApi {
     }
 }
 
-// 8. HTTP 控制器类 (controller)
-class ExerciseHistoryController {
+// 测试类
+class ExerciseHistoryApiTest
+{
     private $api;
+    private $repository;
 
-    public function __construct(ExerciseHistoryApi $api) {
-        $this->api = $api;
+    public function setUp()
+    {
+        $this->repository = new MockExerciseRepository();
+        $this->api = new ExerciseHistoryApi($this->repository);
     }
 
-    public function getHistory() {
-        header('Content-Type: application/json');
-
-        // 获取请求参数
-        $userId = $_GET['user_id'] ?? null;
-        $filters = [
-            'start_date' => $_GET['start_date'] ?? null,
-            'end_date' => $_GET['end_date'] ?? null,
-            'exercise_type' => $_GET['exercise_type'] ?? null,
-            'limit' => $_GET['limit'] ?? 50,
-            'offset' => $_GET['offset'] ?? 0
+    public function testGetUserExerciseHistoryReturnsCorrectFormat()
+    {
+        echo "🧪 测试1: 检查返回数据格式...\n";
+        
+        // Arrange
+        $userId = 123;
+        $mockData = [
+            [
+                'id' => 1,
+                'type' => 'running',
+                'duration' => 30,
+                'distance' => 5.0,
+                'calories' => 300,
+                'date' => '2024-01-15 08:00:00'
+            ]
         ];
 
-        // 过滤空值
-        $filters = array_filter($filters, function($value) {
-            return $value !== null && $value !== '';
-        });
+        $this->repository->setMockData($mockData);
 
-        if (!$userId){
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'user id is required'
-            ]);
-            return;
+        // Act
+        $result = $this->api->getUserExerciseHistory($userId);
+
+        // Assert
+        test_assert($result['status'] === 'success', 'Status should be success');
+        test_assert($result['data']['user_id'] === $userId, 'User ID should match');
+        test_assert(count($result['data']['exercises']) === 1, 'Should have 1 exercise');
+        test_assert($result['data']['exercises'][0]['type'] === 'running', 'Exercise type should be running');
+        test_assert($result['data']['total_count'] === 1, 'Total count should be 1');
+        
+        echo "✅ 测试1通过！\n\n";
+    }
+
+    public function testGetUserExerciseHistoryWithFilters()
+    {
+        echo "🧪 测试2: 检查过滤器功能...\n";
+        
+        // Arrange
+        $userId = 123;
+        $filters = [
+            'start_date' => '2024-01-01',
+            'end_date' => '2024-01-31',
+            'exercise_type' => 'running'
+        ];
+
+        $mockData = [
+            [
+                'id' => 1,
+                'type' => 'running',
+                'duration' => 30,
+                'distance' => 5.0,
+                'calories' => 300,
+                'date' => '2024-01-15 08:00:00'
+            ]
+        ];
+
+        $this->repository->setMockData($mockData);
+
+        // Act
+        $result = $this->api->getUserExerciseHistory($userId, $filters);
+
+        // Assert
+        test_assert($result['status'] === 'success', 'Status should be success');
+        test_assert(is_array($result['data']['exercises']), 'Exercises should be array');
+        test_assert($result['data']['filters_applied'] === $filters, 'Filters should be applied');
+        
+        echo "✅ 测试2通过！\n\n";
+    }
+
+    public function testGetUserExerciseHistoryWithInvalidUserId()
+    {
+        echo "🧪 测试3: 检查无效用户ID处理...\n";
+        
+        // Arrange
+        $invalidUserId = -1;
+
+        // Act
+        $result = $this->api->getUserExerciseHistory($invalidUserId);
+
+        // Assert
+        test_assert($result['status'] === 'error', 'Status should be error');
+        test_assert($result['message'] === 'Invalid user ID', 'Should return invalid user ID message');
+        
+        echo "✅ 测试3通过！\n\n";
+    }
+
+    public function testExerciseRecordToArray()
+    {
+        echo "🧪 测试4: 检查运动记录转数组功能...\n";
+        
+        // Arrange & Act
+        $exercise = new ExerciseRecord(1, 123, 'running', 30, 5.0, 300, '2024-01-15 08:00:00');
+        $array = $exercise->toArray();
+
+        // Assert
+        test_assert($array['id'] === 1, 'ID should be 1');
+        test_assert($array['user_id'] === 123, 'User ID should be 123');
+        test_assert($array['type'] === 'running', 'Type should be running');
+        test_assert($array['duration'] === 30, 'Duration should be 30');
+        test_assert($array['distance'] === 5.0, 'Distance should be 5.0');
+        test_assert($array['calories'] === 300, 'Calories should be 300');
+        
+        echo "✅ 测试4通过！\n\n";
+    }
+
+    public function runAllTests()
+    {
+        echo "🚀 开始运行所有测试...\n\n";
+        
+        try {
+            $this->setUp();
+            $this->testGetUserExerciseHistoryReturnsCorrectFormat();
+            
+            $this->setUp();
+            $this->testGetUserExerciseHistoryWithFilters();
+            
+            $this->setUp();
+            $this->testGetUserExerciseHistoryWithInvalidUserId();
+            
+            $this->testExerciseRecordToArray();
+            
+            echo "🎉 所有测试都通过了！\n";
+            echo "📊 共运行了 4 个测试用例\n";
+            
+        } catch (Exception $e) {
+            echo "❌ 测试失败: " . $e->getMessage() . "\n";
         }
-
-        $result = $this->api->getUserExerciseHistory((int)$userId, $filters);
-        echo json_encode($result);
     }
 }
 
