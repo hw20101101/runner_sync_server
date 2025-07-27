@@ -298,4 +298,69 @@ class ExerciseHistoryValidator {
         return $d && $d->format('Y-m-d') === $date;
     }
 }
+
+// 7. 主要 API 类
+class ExerciseHistoryApi {
+    private $repository;
+    private $validator;
+
+    public function __construct(ExerciseRepositoryInterface $repository) {
+        $this->repository = $repository;
+        $this->validator = new ExerciseHistoryValidator();
+    }
+
+    public function getUserExerciseHistory(int $userId, array $filters =[]) : array {
+        try {
+
+            // 验证用户 ID
+            $userIdErrors = $this->validator->validateUserId($userId);
+            if (!empty($userIdErrors)) {
+                return $this->errorResponse($userIdErrors[0]);
+            }
+
+            // 验证过滤条件
+            $filterErrors = $this->validator->validateFilters($filters);
+            if (!empty($filterErrors)){
+                return $this->errorResponse(implode(', ', $filterErrors));
+            } 
+
+            // 获取运动记录
+            $exercises = $this->repository->findByUserId($userId, $filters);
+            $totalCount = $this->repository->countByUserId($userId, $filters);
+
+            // 转换为数组格式
+            $exerciseData = [];
+            foreach($exercises as $exercise) {
+                $exerciseData[] = $exercise->toArray();
+            }
+
+            return $this->successResponse([
+                'user_id' => $userId,
+                'exercises' => $exerciseData,
+                'total_count' => $totalCount,
+                'filters_applied' => $filters
+            ]);
+
+        } catch(Exception $e) {
+            return $this->errorResponse('Internal server error');
+        }
+    }
+
+    private function successResponse(array $data): array {
+        return [
+            'status' => 'success',
+            'data' => $data,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    }
+
+    private function errorResponse(string $message): array {
+        return [
+            'status' => 'error',
+            'message' => $message,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    }
+}
+
 ?>
