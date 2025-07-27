@@ -336,4 +336,61 @@ class ExerciseHistoryApiTest
     }
 }
 
+// 主执行部分
+if (php_sapi_name() === 'cli') {
+    echo "🏃‍♂️ 历史运动记录API - TDD测试\n";
+    echo "=====================================\n\n";
+    
+    // 运行测试
+    $test = new ExerciseHistoryApiTest();
+    $test->runAllTests();
+    
+    // 演示使用
+    demonstrateUsage();
+    
+} else {
+    echo "<h1>请在命令行中运行此文件</h1>";
+    echo "<p>在终端中执行: <code>php " . basename(__FILE__) . "</code></p>";
+}
+
+// 演示使用
+function demonstrateUsage()
+{
+    echo "\n" . str_repeat("=", 50) . "\n";
+    echo "📋 API使用演示\n";
+    echo str_repeat("=", 50) . "\n";
+    
+    // 创建依赖
+    $repository = new MockExerciseRepository();
+    $api = new ExerciseHistoryApi($repository);
+    
+    // 设置测试数据
+    $mockData = [
+        [
+            'id' => 1,
+            'type' => 'running',
+            'duration' => 30,
+            'distance' => 5.0,
+            'calories' => 300,
+            'date' => '2024-01-15 08:00:00'
+        ],
+        [
+            'id' => 2,
+            'type' => 'cycling',
+            'duration' => 45,
+            'distance' => 15.0,
+            'calories' => 400,
+            'date' => '2024-01-14 09:00:00'
+        ]
+    ];
+    
+    $repository->setMockData($mockData);
+    
+    // 调用API
+    $result = $api->getUserExerciseHistory(123, ['start_date' => '2024-01-01']);
+    
+    echo "📤 API调用结果:\n";
+    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n";
+}
+
 ?>
