@@ -187,7 +187,7 @@ class ExerciseRepository implements ExerciseRepositoryInterface {
 
         $stmt = $this->database->prepare($sql);
         $stmt->execute($params);
-        $result = $stmt->fetchAll();
+        $results = $stmt->fetchAll();
 
         $exercises = [];
         foreach($results as $row) {
@@ -376,7 +376,7 @@ class ExerciseHistoryController {
 
         // 获取请求参数
         $userId = $_GET['user_id'] ?? null;
-        $filter = [
+        $filters = [
             'start_date' => $_GET['start_date'] ?? null,
             'end_date' => $_GET['end_date'] ?? null,
             'exercise_type' => $_GET['exercise_type'] ?? null,
@@ -385,7 +385,7 @@ class ExerciseHistoryController {
         ];
 
         // 过滤空值
-        $filter = array_fiter($filters, function($value) {
+        $filters = array_filter($filters, function($value) {
             return $value !== null && $value !== '';
         });
 
@@ -397,7 +397,7 @@ class ExerciseHistoryController {
             return;
         }
 
-        $result = $this->api->getUserExerciseHistory((int)$userId, $filter);
+        $result = $this->api->getUserExerciseHistory((int)$userId, $filters);
         echo json_encode($result);
     }
 }
